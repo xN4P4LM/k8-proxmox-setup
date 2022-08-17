@@ -1,0 +1,6 @@
+{
+    "url": "{Proxmox host} - IE: https://192.168.1.10:8006", 
+    "username": "{username}",
+    "password": "{password}",
+    "validateCert": true
+}

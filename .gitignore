@@ -1,0 +1,22 @@
+# Ignore Terraform files
+*.tfstate
+*.tf
+.terraform
+.terraform.lock.hcl
+
+# ignore pyhton and pycharm files
+.idea
+venv
+
+# ignore ansible files
+ansible/group_vars/kube_registration_token
+
+## ignoring Ansible-Proxmox-inventory files
+proxmox.json
+proxmox.py
+
+# ignore vscode files
+.vscode
+
+# ignore MacOS files
+.DS_Store

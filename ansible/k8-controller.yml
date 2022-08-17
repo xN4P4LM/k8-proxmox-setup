@@ -1,0 +1,64 @@
+---
+# file: webservers.yml
+- hosts: k8_controller
+  become: true
+
+  tasks:
+    # - name: Check for local kube registration token
+    #   ansible.builtin.stat:
+    #     path: group_vars/kube_registration_token
+    #   register: kube_registration_token
+    #   delegate_to: localhost
+    #   become_user: dmoore
+
+    - name: Check for remote .kube config
+      ansible.builtin.stat:
+        path: "{{ ansible_env.HOME }}/.kube/config"
+      register: kube_config
+
+    - name: Initialize Pod Network CIDR Range
+      ansible.builtin.command: "kubeadm init --pod-network-cidr=172.31.0.0/16"
+      when: not kube_config.stat.exists
+
+    - name: Create a directory for kube config file in root home
+      ansible.builtin.file:
+        path: "{{ ansible_env.HOME }}/.kube"
+        state: directory
+        mode: '0755'
+
+    - name: Copy the kube admin.conf to .kube/config
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ ansible_env.HOME }}/.kube/config"
+        mode: '0755'
+        remote_src: true
+
+    - name: Installing Flannel
+      ansible.builtin.command: "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+      when: not kube_config.stat.exists
+
+    - name: Create Join Command
+      ansible.builtin.command: "kubeadm token create --print-join-command"
+      register: kube_join_token
+      when: not kube_config.stat.exists
+
+    - name: Saving Join tocken to local file
+      copy:
+        content: "{{  kube_join_token.stdout  }}"
+        dest: group_vars/kube_registration_token
+        mode: '0755'
+      delegate_to: localhost
+      become_user: dmoore
+      when: not kube_config.stat.exists
+
+    # - name: Configure firewalld ports
+    #   ansible.posix.firewalld:
+    #     port: "{{ item }}"
+    #     permanent: true
+    #     state: enabled
+    #   loop:
+    #     - 6443/tcp
+    #     - 2379-2380/tcp
+    #     - 10250/tcp
+    #     - 10259/tcp
+    #     - 10257/tcp

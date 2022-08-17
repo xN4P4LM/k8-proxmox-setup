@@ -1,0 +1,117 @@
+---
+# Base files for both
+- hosts: k8_controller,k8_node
+  become: true
+
+  tasks:
+    # - name: Upgrade all packages
+    #   yum:
+    #     name: '*'
+    #     state: latest
+    #     exclude: kube*,docker*,containerd*,
+
+    - name: Install python3 bindings for firewalld
+      ansible.builtin.dnf:
+        name: "python3-firewall"
+        state: present
+
+    - name: Add Docker repository
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docer-ce.repo
+
+    - name: Install docker and dependecies
+      ansible.builtin.dnf:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: /etc/docker/
+        state: directory
+        mode: '0755'
+
+    - name: Confgiure cgroup driver for Docker
+      ansible.builtin.template:
+        src: docker_deamon.j2
+        dest: /etc/docker/daemon.json
+        mode: 0644
+        backup: true
+
+
+    - name: Remove swapfile from /etc/fstab
+      ansible.builtin.mount:
+        name: "{{ item }}"
+        fstype: swap
+        state: absent
+      with_items:
+        - swap
+        - none
+
+    - name: Disable swap
+      command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+
+    - name: Add Kubernetes repository
+      ansible.builtin.template:
+        src: kubernetes.j2
+        dest: /etc/yum.repos.d/kubernetes.repo
+        mode: 0644
+        backup: true
+
+    - name: Install Kubernetes binaries
+      ansible.builtin.dnf:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+          - kubelet
+          - kubeadm
+          - kubectl
+
+    - name: Ensure br_netfilter kernel module is loaded
+      community.general.modprobe:
+        name: br_netfilter
+        state: present
+
+    - name: Enable IPv4 to see bridged traffic
+      ansible.posix.sysctl:
+        name: net.bridge.bridge-nf-call-iptables
+        value: '1'
+        sysctl_set: true
+        state: present
+        reload: true
+
+    - name: Enable IPv6 to see bridged traffic
+      ansible.posix.sysctl:
+        name: net.bridge.bridge-nf-call-ip6tables
+        value: '1'
+        sysctl_set: true
+        state: present
+        reload: true
+
+    - name: Set SELinux to permissive
+      ansible.posix.selinux:
+        policy: targeted
+        state: permissive
+
+    - name: Ensure SELinux is set to permissive
+      ansible.builtin.lineinfile:
+        path: /etc/selinux/config
+        regexp: "^SELINUX="
+        line: SELINUX=permissive
+
+    - name: Start and Enable kubelet and docker
+      ansible.builtin.service:
+        name: "{{ item }}"
+        daemon_reload: true
+        state: started
+        enabled: true
+      loop:
+        - kubelet
+        - docker

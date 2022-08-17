@@ -1,0 +1,26 @@
+---
+# file: webservers.yml
+- hosts: k8_node
+  become: true
+  vars:
+    kube_registration_token: "{{ lookup('file', 'group_vars/kube_registration_token') }}"
+
+  tasks:
+    - name: Checking if the kubernetes node has been configured
+      stat:
+        path: "/var/lib/kubelet/"
+      register: kublet_config
+
+    - name: Joining the kubernetes nodes with the controller
+      command: "{{ kube_registration_token }}"
+      when: not kublet_config.stat.exists
+
+      # - name: Configure firewalld ports
+      #   ansible.posix.firewalld:
+      #     port: "{{ item }}"
+      #     permanent: true
+      #     state: enabled
+      #   loop:
+      #     - 6443/tcp
+      #     - 10250/tcp
+      #     - 30000-32767/tcp

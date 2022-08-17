@@ -1,0 +1,72 @@
+# these variables are for the proxmox hosts and API endpoint
+
+variable "controller-host" {
+  default = "{desired-controller-host}"
+}
+
+variable "controller-api" {
+  default = "desired-controller-host"
+}
+
+variable "node-host" {
+  default = "desired-node-host"
+}
+
+# this defines the number of Kubernetes Nodes
+variable "number-of-nodes" {
+  default = {Number of host as an int}
+}
+
+# this defines the root hostname for the cluster
+variable "cluster-hostname" {
+  default = "{desired hostname}"
+}
+
+# defines the proxmox pool for the vms
+variable "pool" {
+  default = "{default}"
+}
+
+# defines the ssh keys to access the vms
+variable "VM_sshkeys" {
+  type        = string
+  description = "VM public key"
+  default     = "{public ssh key}"
+}
+
+variable "PM_API_TOKEN_ID" {
+  type        = string
+  description = "Proxmox token"
+  default     = "{API User}"
+}
+
+# this is bot the user's password and api token secret
+variable "PM_API_TOKEN_SECRET" {
+  type        = string
+  description = "Proxmox secret"
+  default     = "{API Secret}"
+}
+
+variable "PM_USER" {
+  type        = string
+  description = "Proxmox token"
+  default     = "{User}"
+}
+
+variable "CI_User" {
+  type        = string
+  description = "Proxmox secret"
+  default     = "{VM User}"
+}
+
+variable "CI_Passwd" {
+  type        = string
+  description = "Proxmox secret"
+  default     = "{VM Password}"
+}
+
+variable "CI_sshkeys" {
+  type        = string
+  description = "Proxmox secret"
+  default     = "{public ssh key}"
+}
